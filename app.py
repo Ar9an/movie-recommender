@@ -4,39 +4,64 @@ import pandas as pd
 import requests
 import os
 
-# ------------------ DOWNLOAD FILE FUNCTION (FIXED FOR LARGE FILES) ------------------ #
+
+# ------------------ ROBUST DOWNLOAD FUNCTION ------------------ #
 def download_file(url, filename):
     if not os.path.exists(filename):
         with st.spinner(f"Downloading {filename}..."):
-            session = requests.Session()
+            try:
+                session = requests.Session()
 
-            response = session.get(url, stream=True)
+                response = session.get(url, stream=True)
 
-            # Handle large file confirmation (Google Drive)
-            for key, value in response.cookies.items():
-                if key.startswith('download_warning'):
-                    url = url + "&confirm=" + value
+                # Handle Google Drive large file confirmation
+                token = None
+                for key, value in response.cookies.items():
+                    if key.startswith("download_warning"):
+                        token = value
 
-            response = session.get(url, stream=True)
+                if token:
+                    url = url + "&confirm=" + token
+                    response = session.get(url, stream=True)
 
-            with open(filename, "wb") as f:
-                for chunk in response.iter_content(1024):
-                    if chunk:
-                        f.write(chunk)
+                with open(filename, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
 
-# ------------------ GOOGLE DRIVE LINKS ------------------ #
+                # Debug file size
+                file_size = os.path.getsize(filename)
+                st.write(f"{filename} downloaded ({file_size / (1024 * 1024):.2f} MB)")
+
+                # If file too small → likely failed download
+                if file_size < 1000000:  # <1MB
+                    st.error(f"{filename} download failed (too small). Try Dropbox link.")
+
+            except Exception as e:
+                st.error(f"Error downloading {filename}: {e}")
+
+
+# ------------------ FILE LINKS ------------------ #
+
+# Google Drive links (primary)
 MOVIE_DICT_URL = "https://drive.google.com/uc?export=download&id=1612A2FzoBgaD2yYaUkRuBAZGVQamkc85"
 SIMILARITY_URL = "https://drive.google.com/uc?export=download&id=1CJDlry_DgLArxMZCY-EW813mbY0Shk4r"
 
-# ------------------ DOWNLOAD FILES BEFORE LOADING ------------------ #
+# ------------------ DOWNLOAD FILES ------------------ #
 download_file(MOVIE_DICT_URL, "movie_dict.pkl")
 download_file(SIMILARITY_URL, "similarity.pkl")
+
+# ------------------ CHECK FILE EXISTS ------------------ #
+if not os.path.exists("similarity.pkl") or not os.path.exists("movie_dict.pkl"):
+    st.error("Data files not loaded properly.")
+    st.stop()
 
 # ------------------ LOAD DATA ------------------ #
 movie_dict = pickle.load(open('movie_dict.pkl', 'rb'))
 movies = pd.DataFrame(movie_dict)
 
 similarity = pickle.load(open('similarity.pkl', 'rb'))
+
 
 # ------------------ FETCH POSTER ------------------ #
 def fetch_poster(movie_id):
@@ -53,6 +78,7 @@ def fetch_poster(movie_id):
 
     except:
         return "https://via.placeholder.com/500x750?text=Error"
+
 
 # ------------------ RECOMMEND FUNCTION ------------------ #
 def recommend(movie):
@@ -74,6 +100,7 @@ def recommend(movie):
         recommended_posters.append(fetch_poster(movie_id))
 
     return recommended_movies, recommended_posters
+
 
 # ------------------ STREAMLIT UI ------------------ #
 st.set_page_config(page_title="Movie Recommender", layout="wide")
