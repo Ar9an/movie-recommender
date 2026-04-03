@@ -44,8 +44,9 @@ def download_file(url, filename):
 # ------------------ FILE LINKS ------------------ #
 
 # Google Drive links (primary)
-MOVIE_DICT_URL = "https://drive.google.com/uc?export=download&id=1612A2FzoBgaD2yYaUkRuBAZGVQamkc85"
-SIMILARITY_URL = "https://drive.google.com/uc?export=download&id=1CJDlry_DgLArxMZCY-EW813mbY0Shk4r"
+MOVIE_DICT_URL = "https://www.dropbox.com/scl/fi/q7l0wa9cxo9n20g8qq7lf/movie_dict.pkl?rlkey=qm76eaw0lek8hys1b45momnq6&dl=1"
+
+SIMILARITY_URL = "https://www.dropbox.com/scl/fi/c23zkap8igie90f64e2g2/similarity.pkl?rlkey=skboelkhvt9a8m68rr9mubu2h&dl=1"
 
 # ------------------ DOWNLOAD FILES ------------------ #
 download_file(MOVIE_DICT_URL, "movie_dict.pkl")
