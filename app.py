@@ -4,19 +4,31 @@ import pandas as pd
 import requests
 import os
 
-# ------------------ DOWNLOAD FILE FUNCTION ------------------ #
+# ------------------ DOWNLOAD FILE FUNCTION (FIXED FOR LARGE FILES) ------------------ #
 def download_file(url, filename):
     if not os.path.exists(filename):
         with st.spinner(f"Downloading {filename}..."):
-            r = requests.get(url)
-            with open(filename, "wb") as f:
-                f.write(r.content)
+            session = requests.Session()
 
-# ------------------ FILE LINKS ------------------ #
+            response = session.get(url, stream=True)
+
+            # Handle large file confirmation (Google Drive)
+            for key, value in response.cookies.items():
+                if key.startswith('download_warning'):
+                    url = url + "&confirm=" + value
+
+            response = session.get(url, stream=True)
+
+            with open(filename, "wb") as f:
+                for chunk in response.iter_content(1024):
+                    if chunk:
+                        f.write(chunk)
+
+# ------------------ GOOGLE DRIVE LINKS ------------------ #
 MOVIE_DICT_URL = "https://drive.google.com/uc?export=download&id=1612A2FzoBgaD2yYaUkRuBAZGVQamkc85"
 SIMILARITY_URL = "https://drive.google.com/uc?export=download&id=1CJDlry_DgLArxMZCY-EW813mbY0Shk4r"
 
-# ------------------ DOWNLOAD FILES ------------------ #
+# ------------------ DOWNLOAD FILES BEFORE LOADING ------------------ #
 download_file(MOVIE_DICT_URL, "movie_dict.pkl")
 download_file(SIMILARITY_URL, "similarity.pkl")
 
@@ -63,7 +75,7 @@ def recommend(movie):
 
     return recommended_movies, recommended_posters
 
-# ------------------ UI ------------------ #
+# ------------------ STREAMLIT UI ------------------ #
 st.set_page_config(page_title="Movie Recommender", layout="wide")
 
 st.title('🎬 Movie Recommendation System')
@@ -73,6 +85,7 @@ selected_movie_name = st.selectbox(
     movies['title'].values
 )
 
+# ------------------ BUTTON ------------------ #
 if st.button('Recommend'):
     names, posters = recommend(selected_movie_name)
 
