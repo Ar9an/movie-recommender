@@ -1,4 +1,4 @@
- Movie Recommender System
+## Movie Recommender System
 
 A content-based Movie Recommendation System built using **Machine Learning + Streamlit**, deployed online with a Netflix-inspired UI.
 
